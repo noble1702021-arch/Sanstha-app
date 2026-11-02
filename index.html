@@ -31,35 +31,55 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ਪੂਰੇ ਸਾਲ ਦੇ ਮਹੀਨੇ ਸੀਰੀਅਲ ਵਾਈਜ਼
-    const defaultOrderedMonths = [
-      'ਜਨਵਰੀ 2026',
-      'ਫ਼ਰਵਰੀ 2026',
-      'ਮਾਰਚ 2026',
-      'ਅਪ੍ਰੈਲ 2026',
-      'ਮਈ 2026',
-      'ਜੂਨ 2026',
-      'ਜੁਲਾਈ 2026',
-      'ਅਗਸਤ 2026',
-      'ਸਤੰਬਰ 2026',
-      'ਅਕਤੂਬਰ 2026',
-      'ਨਵੰਬਰ 2026',
-      'ਦਸੰਬਰ 2026'
+    // 2026 ਦੇ ਪੱਕੇ ਮਹੀਨੇ (ਕੈਲੰਡਰ ਸੀਰੀਅਲ ਅਨੁਸਾਰ)
+    const baseMonthNames = [
+      'ਜਨਵਰੀ', 'ਫ਼ਰਵਰੀ', 'ਮਾਰਚ', 'ਅਪ੍ਰੈਲ', 'ਮਈ', 'ਜੂਨ',
+      'ਜੁਲਾਈ', 'ਅਗਸਤ', 'ਸਤੰਬਰ', 'ਅਕਤੂਬਰ', 'ਨਵੰਬਰ', 'ਦਸੰਬਰ'
     ];
+    const defaultOrderedMonths = baseMonthNames.map(m => `${m} 2026`);
 
     let allMonthsData = {};
     let viewingMonth = 'ਅਕਤੂਬਰ 2026';
+    let currentTableFilter = 'all'; // 'all', 'credit', 'debit'
 
-    // ਲਾਈਵ ਸਿੰਕ: ਸਾਰੇ ਮਹੀਨਿਆਂ ਦਾ ਡਾਟਾ ਸਿੰਕ ਕਰੇਗਾ
+    // ਲਾਈਵ ਸਿੰਕ ਅਤੇ ਆਟੋ-ਮਰਜ
     const monthsRef = collection(db, "months_records");
-    onSnapshot(monthsRef, (snapshot) => {
+    onSnapshot(monthsRef, async (snapshot) => {
       document.getElementById('syncStatus').innerText = 'ਲਾਈਵ ਸਿੰਕ (Connected)';
       document.getElementById('syncStatus').className = 'text-xs text-emerald-400 font-semibold';
 
-      allMonthsData = {};
+      let rawData = {};
       snapshot.forEach(docSnap => {
-        allMonthsData[docSnap.id] = docSnap.data().records || [];
+        rawData[docSnap.id] = docSnap.data().records || [];
       });
+
+      // ਪੁਰਾਣੇ ਬਿਨਾਂ 2026 ਵਾਲੇ ਮਹੀਨਿਆਂ ਨੂੰ 2026 ਵਿੱਚ ਮਰਜ ਕਰਨਾ
+      allMonthsData = {};
+      defaultOrderedMonths.forEach(m => { allMonthsData[m] = []; });
+
+      for (let rawKey of Object.keys(rawData)) {
+        let matchedStandard = defaultOrderedMonths.find(m => m === rawKey);
+        
+        if (!matchedStandard) {
+          // ਜੇਕਰ ਨਾਮ ਵਿੱਚ ਸਿਰਫ਼ "ਅਗਸਤ" ਜਾਂ "August" ਲਿਖਿਆ ਸੀ
+          const simpleName = baseMonthNames.find(b => rawKey.includes(b));
+          if (simpleName) {
+            matchedStandard = `${simpleName} 2026`;
+            // ਬੈਕਗਰਾਊਂਡ ਵਿੱਚ ਪੁਰਾਣੇ ਡਾਟੇ ਨੂੰ 2026 ਵਿੱਚ ਮਿਲਾ ਕੇ ਅਸਲੀ ਦਸਤਾਵੇਜ਼ ਨੂੰ ਵੀ ਠੀਕ ਕਰਨਾ
+            const combined = [...(rawData[matchedStandard] || []), ...(rawData[rawKey] || [])];
+            // ਡੁਪਲੀਕੇਟ ਆਈਡੀ ਹਟਾਉਣਾ
+            const uniqueCombined = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            await setDoc(doc(db, "months_records", matchedStandard), { records: uniqueCombined });
+            await deleteDoc(doc(db, "months_records", rawKey));
+            continue;
+          }
+        }
+
+        const target = matchedStandard || rawKey;
+        const currentList = allMonthsData[target] || [];
+        const mergedList = [...currentList, ...(rawData[rawKey] || [])];
+        allMonthsData[target] = Array.from(new Map(mergedList.map(item => [item.id, item])).values());
+      }
 
       populateMonthDropdown();
       renderApp();
@@ -69,6 +89,28 @@
       document.getElementById('syncStatus').className = 'text-xs text-rose-300 font-semibold';
       console.error(error);
     });
+
+    window.setTableFilter = function(filterType) {
+      currentTableFilter = filterType;
+      
+      const btnAll = document.getElementById('filterBtnAll');
+      const btnCredit = document.getElementById('filterBtnCredit');
+      const btnDebit = document.getElementById('filterBtnDebit');
+
+      btnAll.className = filterType === 'all' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow' 
+        : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+      
+      btnCredit.className = filterType === 'credit' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow' 
+        : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+
+      btnDebit.className = filterType === 'debit' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-600 text-white shadow' 
+        : 'px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+
+      renderApp();
+    };
 
     window.handleFormSubmit = async function(e) {
       e.preventDefault();
@@ -108,70 +150,17 @@
       }
     };
 
-    window.startNewMonth = async function() {
-      const nextMonthPrompt = prompt('ਨਵੇਂ ਮਹੀਨੇ ਦਾ ਨਾਮ ਦਰਜ ਕਰੋ (ਉਦਾਹਰਣ: ਜਨਵਰੀ 2027):', '');
-      if (!nextMonthPrompt || !nextMonthPrompt.trim()) return;
-
-      const newName = nextMonthPrompt.trim();
-      if (allMonthsData[newName]) {
-        alert('ਇਸ ਨਾਮ ਦਾ ਮਹੀਨਾ ਪਹਿਲਾਂ ਹੀ ਮੌਜੂਦ ਹੈ!');
-        return;
-      }
-
-      let currentCredit = 0;
-      let currentDebit = 0;
-      (allMonthsData[viewingMonth] || []).forEach(t => {
-        if (t.type === 'credit') currentCredit += t.amount;
-        else currentDebit += t.amount;
-      });
-      const netBalance = currentCredit - currentDebit;
-
-      const today = new Date().toISOString().split('T')[0];
-      const newRecords = [
-        {
-          id: Date.now().toString(),
-          type: 'credit',
-          name: 'Opening Balance (ਪਿਛਲਾ ਬਕਾਇਆ)',
-          phone: '',
-          date: today,
-          amount: netBalance >= 0 ? netBalance : 0
-        }
-      ];
-
-      await setDoc(doc(db, "months_records", newName), { records: newRecords });
-      viewingMonth = newName;
-      populateMonthDropdown();
-      renderApp();
-    };
-
-    window.deleteCurrentMonth = async function() {
-      if (!allMonthsData[viewingMonth] || allMonthsData[viewingMonth].length === 0) {
-        alert('ਇਸ ਮਹੀਨੇ ਵਿੱਚ ਕੋਈ ਡਾਟਾ ਨਹੀਂ ਹੈ!');
-        return;
-      }
-
-      if (!confirm(`ਕੀ ਤੁਸੀਂ "${viewingMonth}" ਦੀਆਂ ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?`)) return;
-
-      await deleteDoc(doc(db, "months_records", viewingMonth));
-      renderApp();
-    };
-
     window.switchMonth = function(month) {
       viewingMonth = month;
       resetFormToNew();
       renderApp();
     };
 
-    // ਮਹੀਨਿਆਂ ਨੂੰ ਸੀਰੀਅਲ ਵਾਈਜ਼ ਡ੍ਰੌਪਡਾਊਨ ਵਿੱਚ ਲਗਾਉਣਾ
     function populateMonthDropdown() {
       const select = document.getElementById('activeMonthSelect');
       select.innerHTML = '';
 
-      // ਡਿਫ਼ੌਲਟ ਸਾਲ 2026 ਦੇ ਮਹੀਨੇ ਅਤੇ ਜੇ ਕੋਈ ਹੋਰ ਵੱਖਰਾ ਮਹੀਨਾ ਡਾਟਾਬੇਸ ਵਿੱਚ ਬਣਿਆ ਹੋਵੇ ਤਾਂ ਉਸਨੂੰ ਵੀ ਜੋੜਨਾ
-      const existingExtraMonths = Object.keys(allMonthsData).filter(m => !defaultOrderedMonths.includes(m));
-      const fullList = [...defaultOrderedMonths, ...existingExtraMonths];
-
-      fullList.forEach(mName => {
+      defaultOrderedMonths.forEach(mName => {
         const opt = document.createElement('option');
         opt.value = mName;
         const hasData = (allMonthsData[mName] && allMonthsData[mName].length > 0);
@@ -179,7 +168,7 @@
         select.appendChild(opt);
       });
 
-      if (!fullList.includes(viewingMonth)) {
+      if (!defaultOrderedMonths.includes(viewingMonth)) {
         viewingMonth = 'ਅਕਤੂਬਰ 2026';
       }
       select.value = viewingMonth;
@@ -251,23 +240,20 @@
       document.getElementById('cancelEditBtn').classList.add('hidden');
     };
 
-    // ਵਿਅਕਤੀਗਤ ਲੈੱਜਰ / ਸਟੇਟਮੈਂਟ (MODAL)
+    // ਵਿਅਕਤੀਗਤ ਲੈੱਜਰ ਪੌਪ-ਅੱਪ
     window.openPersonHistory = function(personName) {
       if (!personName || personName.includes('Opening Balance')) return;
 
       let historyRecords = [];
-      let totalGiven = 0;    // ਸਹਾਇਤਾ (Debit)
-      let totalReceived = 0; // ਆਮਦਨ (Credit)
+      let totalGiven = 0;
+      let totalReceived = 0;
       let matchedPhone = '';
 
       Object.keys(allMonthsData).forEach(mName => {
         const monthList = allMonthsData[mName] || [];
         monthList.forEach(item => {
           if (item.name && item.name.trim().toLowerCase() === personName.trim().toLowerCase()) {
-            historyRecords.push({
-              month: mName,
-              ...item
-            });
+            historyRecords.push({ month: mName, ...item });
             if (item.phone && !matchedPhone) matchedPhone = item.phone;
             if (item.type === 'credit') totalReceived += item.amount;
             else totalGiven += item.amount;
@@ -374,16 +360,23 @@
         });
       }
 
-      // Ledger Table
+      // ਟੇਬਲ ਫਿਲਟਰ (ਸਾਰੀਆਂ, ਕ੍ਰੈਡਿਟ ਜਾਂ ਡੈਬਿਟ)
+      let displayedRecords = records;
+      if (currentTableFilter === 'credit') {
+        displayedRecords = records.filter(t => t.type === 'credit');
+      } else if (currentTableFilter === 'debit') {
+        displayedRecords = records.filter(t => t.type === 'debit');
+      }
+
       const tableBody = document.getElementById('transactionTableBody');
       tableBody.innerHTML = '';
 
-      if (records.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs">ਕੋਈ ਡਾਟਾ ਮੌਜੂਦ ਨਹੀਂ ਹੈ</td></tr>`;
+      if (displayedRecords.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs">ਕੋਈ ਐਂਟਰੀ ਮੌਜੂਦ ਨਹੀਂ ਹੈ</td></tr>`;
         return;
       }
 
-      records.forEach(t => {
+      displayedRecords.forEach(t => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
         const isCredit = t.type === 'credit';
@@ -454,10 +447,7 @@
         <p id="syncStatus" class="text-xs text-indigo-200">ਕਨੈਕਟ ਹੋ ਰਿਹਾ ਹੈ...</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <button onclick="startNewMonth()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-arrows-rotate"></i> ਨਵਾਂ ਸਾਲ / ਮਹੀਨਾ ਜੋੜੋ
-        </button>
-        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-4 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
           <i class="fa-solid fa-file-excel"></i> Excel ਡਾਊਨਲੋਡ
         </button>
       </div>
@@ -466,18 +456,15 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
-    <!-- Month Selector Bar -->
+    <!-- Month Selector Bar (ਸਿਰਫ਼ 2026 ਦੇ ਮਹੀਨੇ) -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm font-bold text-slate-700">ਮਹੀਨਾ ਚੁਣੋ:</span>
+        <span class="text-sm font-bold text-slate-700">ਮਹੀਨਾ ਚੁਣੋ (2026):</span>
         <select id="activeMonthSelect" onchange="switchMonth(this.value)" class="border border-indigo-300 bg-indigo-50 text-indigo-900 font-semibold rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500">
         </select>
-        <button onclick="deleteCurrentMonth()" title="ਇਸ ਮਹੀਨੇ ਦੀਆਂ ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ ਖ਼ਾਲੀ ਕਰੋ" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-eraser"></i> ਇਹ ਮਹੀਨਾ ਖ਼ਾਲੀ ਕਰੋ
-        </button>
       </div>
       <div class="text-xs text-slate-400 italic">
-        * ਡ੍ਰੌਪਡਾਊਨ ਵਿੱਚ ਬਿੰਦੀ (•) ਵਾਲੇ ਮਹੀਨਿਆਂ ਵਿੱਚ ਡਾਟਾ ਮੌਜੂਦ ਹੈ
+        * ਬਿੰਦੀ (•) ਵਾਲੇ ਮਹੀਨਿਆਂ ਵਿੱਚ ਡਾਟਾ ਮੌਜੂਦ ਹੈ
       </div>
     </div>
 
@@ -578,10 +565,25 @@
         <div class="overflow-y-auto max-h-96 divide-y divide-slate-100" id="memberSummaryList"></div>
       </div>
 
-      <!-- Transactions Ledger Table -->
+      <!-- Transactions Ledger Table With Filter Tabs -->
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2 space-y-4">
-        <div class="flex justify-between items-center">
+        
+        <!-- Header with Filter Buttons -->
+        <div class="flex flex-wrap justify-between items-center gap-3">
           <h4 class="font-bold text-slate-800 text-sm md:text-base" id="ledgerTitle">ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ (Ledger)</h4>
+          
+          <!-- ਫਿਲਟਰ ਬਟਨ -->
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button id="filterBtnAll" onclick="setTableFilter('all')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow transition">
+              ਸਾਰੀਆਂ (All)
+            </button>
+            <button id="filterBtnCredit" onclick="setTableFilter('credit')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+              ਆਮਦਨ (Credit)
+            </button>
+            <button id="filterBtnDebit" onclick="setTableFilter('debit')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+              ਸਹਾਇਤਾ (Debit)
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
