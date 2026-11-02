@@ -43,8 +43,14 @@
       availableYears.push(y.toString());
     }
 
-    let selectedYear = '2026';
-    let selectedMonthName = 'ਅਕਤੂਬਰ';
+    // ਮੌਜੂਦਾ ਮਿਤੀ ਤੋਂ ਸਾਲ ਅਤੇ ਮਹੀਨਾ ਕੱਢਣਾ (Real-time auto-detect)
+    const todayObj = new Date();
+    const currentRealYear = todayObj.getFullYear().toString();
+    const currentRealMonthName = monthNames[todayObj.getMonth()];
+
+    // ਪਹਿਲਾਂ ਬੰਦ ਕੀਤੇ ਮਹੀਨੇ ਦੀ ਮੈਮੋਰੀ (localStorage) ਜਾਂ ਮੌਜੂਦਾ ਚਾਲੂ ਮਹੀਨਾ
+    let selectedYear = localStorage.getItem('sanstha_selected_year') || (availableYears.includes(currentRealYear) ? currentRealYear : '2026');
+    let selectedMonthName = localStorage.getItem('sanstha_selected_month') || currentRealMonthName;
     let viewingMonth = `${selectedMonthName} ${selectedYear}`;
 
     let allMonthsData = {};
@@ -64,7 +70,6 @@
       allMonthsData = {};
 
       for (let rawKey of Object.keys(rawData)) {
-        // ਜੇਕਰ ਨਾਮ ਵਿੱਚ ਸਾਲ ਨਹੀਂ ਲਿਖਿਆ ਸੀ (ਜਿਵੇਂ ਇਕੱਲਾ "ਅਗਸਤ") ਤਾਂ ਉਸਨੂੰ "ਅਗਸਤ 2026" ਵਿੱਚ ਮਰਜ ਕਰੋ
         let normalizedKey = rawKey;
         const hasYear = /\d{4}/.test(rawKey);
         if (!hasYear) {
@@ -94,7 +99,6 @@
     });
 
     function initDropdowns() {
-      // ਸਾਲ ਡ੍ਰੌਪਡਾਊਨ
       const yearSelect = document.getElementById('yearSelect');
       yearSelect.innerHTML = '';
       availableYears.forEach(year => {
@@ -126,6 +130,7 @@
 
     window.onYearChange = function(newYear) {
       selectedYear = newYear;
+      localStorage.setItem('sanstha_selected_year', selectedYear);
       viewingMonth = `${selectedMonthName} ${selectedYear}`;
       populateMonthOptions();
       resetFormToNew();
@@ -134,6 +139,7 @@
 
     window.onMonthChange = function(newMonth) {
       selectedMonthName = newMonth;
+      localStorage.setItem('sanstha_selected_month', selectedMonthName);
       viewingMonth = `${selectedMonthName} ${selectedYear}`;
       resetFormToNew();
       renderApp();
@@ -337,7 +343,10 @@
     };
 
     function renderApp() {
-      const records = allMonthsData[viewingMonth] || [];
+      let records = allMonthsData[viewingMonth] ? [...allMonthsData[viewingMonth]] : [];
+
+      // ਮਿਤੀ ਮੁਤਾਬਕ ਸਾਰਟ ਕਰਨਾ (Recent date first)
+      records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       let totalCredit = 0;
       let totalDebit = 0;
@@ -481,7 +490,7 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
-    <!-- Year & Month Selector Bar (2024 to 2040) -->
+    <!-- Year & Month Selector Bar -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-1.5">
