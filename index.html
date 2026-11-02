@@ -31,18 +31,26 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 2026 ਦੇ ਪੱਕੇ ਮਹੀਨੇ (ਕੈਲੰਡਰ ਸੀਰੀਅਲ ਅਨੁਸਾਰ)
-    const baseMonthNames = [
+    // 12 ਮਹੀਨੇ ਸੀਰੀਅਲ ਵਾਈਜ਼
+    const monthNames = [
       'ਜਨਵਰੀ', 'ਫ਼ਰਵਰੀ', 'ਮਾਰਚ', 'ਅਪ੍ਰੈਲ', 'ਮਈ', 'ਜੂਨ',
       'ਜੁਲਾਈ', 'ਅਗਸਤ', 'ਸਤੰਬਰ', 'ਅਕਤੂਬਰ', 'ਨਵੰਬਰ', 'ਦਸੰਬਰ'
     ];
-    const defaultOrderedMonths = baseMonthNames.map(m => `${m} 2026`);
+
+    // 2024 ਤੋਂ 2040 ਤੱਕ ਦੇ ਸਾਲ
+    const availableYears = [];
+    for (let y = 2024; y <= 2040; y++) {
+      availableYears.push(y.toString());
+    }
+
+    let selectedYear = '2026';
+    let selectedMonthName = 'ਅਕਤੂਬਰ';
+    let viewingMonth = `${selectedMonthName} ${selectedYear}`;
 
     let allMonthsData = {};
-    let viewingMonth = 'ਅਕਤੂਬਰ 2026';
     let currentTableFilter = 'all'; // 'all', 'credit', 'debit'
 
-    // ਲਾਈਵ ਸਿੰਕ ਅਤੇ ਆਟੋ-ਮਰਜ
+    // ਲਾਈਵ ਸਿੰਕ
     const monthsRef = collection(db, "months_records");
     onSnapshot(monthsRef, async (snapshot) => {
       document.getElementById('syncStatus').innerText = 'ਲਾਈਵ ਸਿੰਕ (Connected)';
@@ -53,35 +61,30 @@
         rawData[docSnap.id] = docSnap.data().records || [];
       });
 
-      // ਪੁਰਾਣੇ ਬਿਨਾਂ 2026 ਵਾਲੇ ਮਹੀਨਿਆਂ ਨੂੰ 2026 ਵਿੱਚ ਮਰਜ ਕਰਨਾ
       allMonthsData = {};
-      defaultOrderedMonths.forEach(m => { allMonthsData[m] = []; });
 
       for (let rawKey of Object.keys(rawData)) {
-        let matchedStandard = defaultOrderedMonths.find(m => m === rawKey);
-        
-        if (!matchedStandard) {
-          // ਜੇਕਰ ਨਾਮ ਵਿੱਚ ਸਿਰਫ਼ "ਅਗਸਤ" ਜਾਂ "August" ਲਿਖਿਆ ਸੀ
-          const simpleName = baseMonthNames.find(b => rawKey.includes(b));
-          if (simpleName) {
-            matchedStandard = `${simpleName} 2026`;
-            // ਬੈਕਗਰਾਊਂਡ ਵਿੱਚ ਪੁਰਾਣੇ ਡਾਟੇ ਨੂੰ 2026 ਵਿੱਚ ਮਿਲਾ ਕੇ ਅਸਲੀ ਦਸਤਾਵੇਜ਼ ਨੂੰ ਵੀ ਠੀਕ ਕਰਨਾ
-            const combined = [...(rawData[matchedStandard] || []), ...(rawData[rawKey] || [])];
-            // ਡੁਪਲੀਕੇਟ ਆਈਡੀ ਹਟਾਉਣਾ
+        // ਜੇਕਰ ਨਾਮ ਵਿੱਚ ਸਾਲ ਨਹੀਂ ਲਿਖਿਆ ਸੀ (ਜਿਵੇਂ ਇਕੱਲਾ "ਅਗਸਤ") ਤਾਂ ਉਸਨੂੰ "ਅਗਸਤ 2026" ਵਿੱਚ ਮਰਜ ਕਰੋ
+        let normalizedKey = rawKey;
+        const hasYear = /\d{4}/.test(rawKey);
+        if (!hasYear) {
+          const matchedMonth = monthNames.find(m => rawKey.includes(m));
+          if (matchedMonth) {
+            normalizedKey = `${matchedMonth} 2026`;
+            const combined = [...(rawData[normalizedKey] || []), ...(rawData[rawKey] || [])];
             const uniqueCombined = Array.from(new Map(combined.map(item => [item.id, item])).values());
-            await setDoc(doc(db, "months_records", matchedStandard), { records: uniqueCombined });
+            await setDoc(doc(db, "months_records", normalizedKey), { records: uniqueCombined });
             await deleteDoc(doc(db, "months_records", rawKey));
             continue;
           }
         }
 
-        const target = matchedStandard || rawKey;
-        const currentList = allMonthsData[target] || [];
+        const currentList = allMonthsData[normalizedKey] || [];
         const mergedList = [...currentList, ...(rawData[rawKey] || [])];
-        allMonthsData[target] = Array.from(new Map(mergedList.map(item => [item.id, item])).values());
+        allMonthsData[normalizedKey] = Array.from(new Map(mergedList.map(item => [item.id, item])).values());
       }
 
-      populateMonthDropdown();
+      initDropdowns();
       renderApp();
       updateAutoSuggestions();
     }, (error) => {
@@ -89,6 +92,52 @@
       document.getElementById('syncStatus').className = 'text-xs text-rose-300 font-semibold';
       console.error(error);
     });
+
+    function initDropdowns() {
+      // ਸਾਲ ਡ੍ਰੌਪਡਾਊਨ
+      const yearSelect = document.getElementById('yearSelect');
+      yearSelect.innerHTML = '';
+      availableYears.forEach(year => {
+        const opt = document.createElement('option');
+        opt.value = year;
+        opt.text = year;
+        yearSelect.appendChild(opt);
+      });
+      yearSelect.value = selectedYear;
+
+      populateMonthOptions();
+    }
+
+    function populateMonthOptions() {
+      const monthSelect = document.getElementById('monthSelect');
+      monthSelect.innerHTML = '';
+
+      monthNames.forEach(m => {
+        const fullKey = `${m} ${selectedYear}`;
+        const hasData = allMonthsData[fullKey] && allMonthsData[fullKey].length > 0;
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.text = hasData ? `${m} •` : m;
+        monthSelect.appendChild(opt);
+      });
+
+      monthSelect.value = selectedMonthName;
+    }
+
+    window.onYearChange = function(newYear) {
+      selectedYear = newYear;
+      viewingMonth = `${selectedMonthName} ${selectedYear}`;
+      populateMonthOptions();
+      resetFormToNew();
+      renderApp();
+    };
+
+    window.onMonthChange = function(newMonth) {
+      selectedMonthName = newMonth;
+      viewingMonth = `${selectedMonthName} ${selectedYear}`;
+      resetFormToNew();
+      renderApp();
+    };
 
     window.setTableFilter = function(filterType) {
       currentTableFilter = filterType;
@@ -149,30 +198,6 @@
         resetFormToNew();
       }
     };
-
-    window.switchMonth = function(month) {
-      viewingMonth = month;
-      resetFormToNew();
-      renderApp();
-    };
-
-    function populateMonthDropdown() {
-      const select = document.getElementById('activeMonthSelect');
-      select.innerHTML = '';
-
-      defaultOrderedMonths.forEach(mName => {
-        const opt = document.createElement('option');
-        opt.value = mName;
-        const hasData = (allMonthsData[mName] && allMonthsData[mName].length > 0);
-        opt.text = hasData ? `${mName} •` : mName;
-        select.appendChild(opt);
-      });
-
-      if (!defaultOrderedMonths.includes(viewingMonth)) {
-        viewingMonth = 'ਅਕਤੂਬਰ 2026';
-      }
-      select.value = viewingMonth;
-    }
 
     function updateAutoSuggestions() {
       const uniqueNames = new Set();
@@ -360,7 +385,7 @@
         });
       }
 
-      // ਟੇਬਲ ਫਿਲਟਰ (ਸਾਰੀਆਂ, ਕ੍ਰੈਡਿਟ ਜਾਂ ਡੈਬਿਟ)
+      // Filtered Transactions
       let displayedRecords = records;
       if (currentTableFilter === 'credit') {
         displayedRecords = records.filter(t => t.type === 'credit');
@@ -456,15 +481,23 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
-    <!-- Month Selector Bar (ਸਿਰਫ਼ 2026 ਦੇ ਮਹੀਨੇ) -->
+    <!-- Year & Month Selector Bar (2024 to 2040) -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm font-bold text-slate-700">ਮਹੀਨਾ ਚੁਣੋ (2026):</span>
-        <select id="activeMonthSelect" onchange="switchMonth(this.value)" class="border border-indigo-300 bg-indigo-50 text-indigo-900 font-semibold rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500">
-        </select>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs font-bold text-slate-600 uppercase">ਸਾਲ:</label>
+          <select id="yearSelect" onchange="onYearChange(this.value)" class="border border-indigo-300 bg-indigo-50 text-indigo-900 font-bold rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs font-bold text-slate-600 uppercase">ਮਹੀਨਾ:</label>
+          <select id="monthSelect" onchange="onMonthChange(this.value)" class="border border-indigo-300 bg-indigo-50 text-indigo-900 font-semibold rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+          </select>
+        </div>
       </div>
       <div class="text-xs text-slate-400 italic">
-        * ਬਿੰਦੀ (•) ਵਾਲੇ ਮਹੀਨਿਆਂ ਵਿੱਚ ਡਾਟਾ ਮੌਜੂਦ ਹੈ
+        * ਬਿੰਦੀ (•) ਵਾਲੇ ਮਹੀਨੇ ਵਿੱਚ ਡਾਟਾ ਪਿਆ ਹੈ
       </div>
     </div>
 
@@ -568,11 +601,9 @@
       <!-- Transactions Ledger Table With Filter Tabs -->
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2 space-y-4">
         
-        <!-- Header with Filter Buttons -->
         <div class="flex flex-wrap justify-between items-center gap-3">
           <h4 class="font-bold text-slate-800 text-sm md:text-base" id="ledgerTitle">ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ (Ledger)</h4>
           
-          <!-- ਫਿਲਟਰ ਬਟਨ -->
           <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button id="filterBtnAll" onclick="setTableFilter('all')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow transition">
               ਸਾਰੀਆਂ (All)
