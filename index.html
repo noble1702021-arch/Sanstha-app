@@ -31,57 +31,30 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Initial default seed if database is new
-    const seedData = [
-      { id: '1', type: 'credit', name: 'Opening Balance', phone: '', date: '2026-10-01', amount: 41342 },
-      { id: '2', type: 'credit', name: 'Pawanjit Singh', phone: '', date: '2026-10-09', amount: 6858 },
-      { id: '3', type: 'credit', name: 'Bhupinder Singh Gill', phone: '', date: '2026-10-08', amount: 2100 },
-      { id: '4', type: 'credit', name: 'Ashok Singh', phone: '', date: '2026-10-01', amount: 2100 },
-      { id: '5', type: 'credit', name: 'Balraj Singh Gill', phone: '', date: '2026-10-01', amount: 500 },
-      { id: '6', type: 'credit', name: 'Akashdeep Bath', phone: '', date: '2026-10-05', amount: 500 },
-      { id: '7', type: 'credit', name: 'Davinder Singh Mangror', phone: '', date: '2026-10-07', amount: 1100 },
-      { id: '8', type: 'credit', name: 'Ravinder Singh Ravi Bhaji', phone: '', date: '2026-10-08', amount: 2100 },
-      { id: '9', type: 'credit', name: 'Kulwinder Singh Choti Jhallia', phone: '', date: '2026-10-02', amount: 1100 },
-      { id: '10', type: 'credit', name: 'Jugraj Singh Gill', phone: '', date: '2026-10-02', amount: 500 },
-      { id: '11', type: 'credit', name: 'Gurpreet Kaur Sahota', phone: '', date: '2026-10-06', amount: 3397 },
-      { id: '12', type: 'credit', name: 'Ranjit Singh Mann', phone: '', date: '2026-10-01', amount: 1100 },
-      { id: '13', type: 'credit', name: 'Gurwinder Singh Randhawa', phone: '', date: '2026-10-02', amount: 1100 },
-      { id: '14', type: 'credit', name: 'Anchal Brar Machiwara', phone: '', date: '2026-10-09', amount: 1500 },
-      { id: '15', type: 'credit', name: 'Kulwinder Kaur Gobindgarh', phone: '', date: '2026-10-10', amount: 500 },
-      { id: '16', type: 'credit', name: 'Paramjit Singh Fouji', phone: '', date: '2026-10-05', amount: 500 },
-      { id: '17', type: 'credit', name: 'Gagan Rana', phone: '', date: '2026-10-06', amount: 500 },
-      { id: '18', type: 'debit', name: 'Bhai Davinder Singh', phone: '94176-53784', date: '2026-10-10', amount: 2100 },
-      { id: '19', type: 'debit', name: 'Bhai Balwinder Singh Asrion', phone: '82839-28649', date: '2026-10-10', amount: 2100 },
-      { id: '20', type: 'debit', name: 'Bhai Avtar Singh Panjola', phone: '94658-91922', date: '2026-10-10', amount: 2100 },
-      { id: '21', type: 'debit', name: 'Bhai Balwinder Singh Sher Singh', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '22', type: 'debit', name: 'Bhai Gurjant Singh Phool', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '23', type: 'debit', name: 'Bhai Satnam Singh Pinacha', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '24', type: 'debit', name: 'Bhai Resham Singh Garhbagga', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '25', type: 'debit', name: 'Bhai Jaswinder Singh', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '26', type: 'debit', name: 'Bhai Pargat Singh', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '27', type: 'debit', name: 'Bhai Paramjit Singh', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '28', type: 'debit', name: 'Jaswinder Singh Khariabaad', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '29', type: 'debit', name: 'Bhai Shubagh Singh', phone: '98154-44176', date: '2026-10-10', amount: 2100 },
-      { id: '30', type: 'debit', name: 'Bhai Bahadur Singh Hirdapur', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '31', type: 'debit', name: 'Bhai Inderpal Singh', phone: '89774-85183', date: '2026-10-10', amount: 2100 },
-      { id: '32', type: 'debit', name: 'Bhai Kesar Singh Bande Mehlan', phone: '', date: '2026-10-10', amount: 2100 },
-      { id: '33', type: 'debit', name: 'Jaswant Singh Thaakedar', phone: '', date: '2026-10-10', amount: 1100 },
-      { id: '34', type: 'debit', name: 'SimranJeet Singh Jhallain Choti', phone: '', date: '2026-10-10', amount: 1100 },
-      { id: '35', type: 'debit', name: 'Bhai Sukhdev Singh Tonse', phone: '', date: '2026-10-10', amount: 1100 }
+    // ਪੂਰੇ ਸਾਲ ਦੇ ਮਹੀਨੇ ਸੀਰੀਅਲ ਵਾਈਜ਼
+    const defaultOrderedMonths = [
+      'ਜਨਵਰੀ 2026',
+      'ਫ਼ਰਵਰੀ 2026',
+      'ਮਾਰਚ 2026',
+      'ਅਪ੍ਰੈਲ 2026',
+      'ਮਈ 2026',
+      'ਜੂਨ 2026',
+      'ਜੁਲਾਈ 2026',
+      'ਅਗਸਤ 2026',
+      'ਸਤੰਬਰ 2026',
+      'ਅਕਤੂਬਰ 2026',
+      'ਨਵੰਬਰ 2026',
+      'ਦਸੰਬਰ 2026'
     ];
 
     let allMonthsData = {};
     let viewingMonth = 'ਅਕਤੂਬਰ 2026';
 
+    // ਲਾਈਵ ਸਿੰਕ: ਸਾਰੇ ਮਹੀਨਿਆਂ ਦਾ ਡਾਟਾ ਸਿੰਕ ਕਰੇਗਾ
     const monthsRef = collection(db, "months_records");
     onSnapshot(monthsRef, (snapshot) => {
       document.getElementById('syncStatus').innerText = 'ਲਾਈਵ ਸਿੰਕ (Connected)';
       document.getElementById('syncStatus').className = 'text-xs text-emerald-400 font-semibold';
-
-      if (snapshot.empty) {
-        setDoc(doc(db, "months_records", "ਅਕਤੂਬਰ 2026"), { records: seedData });
-        return;
-      }
 
       allMonthsData = {};
       snapshot.forEach(docSnap => {
@@ -92,7 +65,7 @@
       renderApp();
       updateAutoSuggestions();
     }, (error) => {
-      document.getElementById('syncStatus').innerText = 'ਕਨੈਕਸ਼ਨ ਫੇਲ੍ਹ (Offline / Enable Firestore)';
+      document.getElementById('syncStatus').innerText = 'ਕਨੈਕਸ਼ਨ ਫੇਲ੍ਹ (Offline)';
       document.getElementById('syncStatus').className = 'text-xs text-rose-300 font-semibold';
       console.error(error);
     });
@@ -106,7 +79,7 @@
       const date = document.getElementById('date').value;
       const amount = parseFloat(document.getElementById('amount').value);
 
-      if (!name || isNaN(amount) || !date) return;
+      if (!name || isNaN(amount) || !date || !viewingMonth) return;
 
       let records = allMonthsData[viewingMonth] ? [...allMonthsData[viewingMonth]] : [];
 
@@ -136,7 +109,7 @@
     };
 
     window.startNewMonth = async function() {
-      const nextMonthPrompt = prompt('ਨਵੇਂ ਮਹੀਨੇ ਦਾ ਨਾਮ ਦਰਜ ਕਰੋ (ਉਦਾਹਰਣ: ਨਵੰਬਰ 2026):', '');
+      const nextMonthPrompt = prompt('ਨਵੇਂ ਮਹੀਨੇ ਦਾ ਨਾਮ ਦਰਜ ਕਰੋ (ਉਦਾਹਰਣ: ਜਨਵਰੀ 2027):', '');
       if (!nextMonthPrompt || !nextMonthPrompt.trim()) return;
 
       const newName = nextMonthPrompt.trim();
@@ -167,20 +140,20 @@
 
       await setDoc(doc(db, "months_records", newName), { records: newRecords });
       viewingMonth = newName;
+      populateMonthDropdown();
+      renderApp();
     };
 
     window.deleteCurrentMonth = async function() {
-      const monthKeys = Object.keys(allMonthsData);
-      if (monthKeys.length <= 1) {
-        alert('ਘੱਟੋ-ਘੱਟ ਇੱਕ ਮਹੀਨਾ ਹੋਣਾ ਜ਼ਰੂਰੀ ਹੈ!');
+      if (!allMonthsData[viewingMonth] || allMonthsData[viewingMonth].length === 0) {
+        alert('ਇਸ ਮਹੀਨੇ ਵਿੱਚ ਕੋਈ ਡਾਟਾ ਨਹੀਂ ਹੈ!');
         return;
       }
 
-      if (!confirm(`ਕੀ ਤੁਸੀਂ "${viewingMonth}" ਦਾ ਪੂਰਾ ਮਹੀਨਾ ਡਿਲੀਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?`)) return;
+      if (!confirm(`ਕੀ ਤੁਸੀਂ "${viewingMonth}" ਦੀਆਂ ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?`)) return;
 
       await deleteDoc(doc(db, "months_records", viewingMonth));
-      const remaining = Object.keys(allMonthsData).filter(m => m !== viewingMonth);
-      viewingMonth = remaining[0];
+      renderApp();
     };
 
     window.switchMonth = function(month) {
@@ -189,20 +162,26 @@
       renderApp();
     };
 
+    // ਮਹੀਨਿਆਂ ਨੂੰ ਸੀਰੀਅਲ ਵਾਈਜ਼ ਡ੍ਰੌਪਡਾਊਨ ਵਿੱਚ ਲਗਾਉਣਾ
     function populateMonthDropdown() {
       const select = document.getElementById('activeMonthSelect');
       select.innerHTML = '';
-      const months = Object.keys(allMonthsData);
-      if (!months.includes(viewingMonth) && months.length > 0) {
-        viewingMonth = months[0];
-      }
 
-      months.forEach(mName => {
+      // ਡਿਫ਼ੌਲਟ ਸਾਲ 2026 ਦੇ ਮਹੀਨੇ ਅਤੇ ਜੇ ਕੋਈ ਹੋਰ ਵੱਖਰਾ ਮਹੀਨਾ ਡਾਟਾਬੇਸ ਵਿੱਚ ਬਣਿਆ ਹੋਵੇ ਤਾਂ ਉਸਨੂੰ ਵੀ ਜੋੜਨਾ
+      const existingExtraMonths = Object.keys(allMonthsData).filter(m => !defaultOrderedMonths.includes(m));
+      const fullList = [...defaultOrderedMonths, ...existingExtraMonths];
+
+      fullList.forEach(mName => {
         const opt = document.createElement('option');
         opt.value = mName;
-        opt.text = mName;
+        const hasData = (allMonthsData[mName] && allMonthsData[mName].length > 0);
+        opt.text = hasData ? `${mName} •` : mName;
         select.appendChild(opt);
       });
+
+      if (!fullList.includes(viewingMonth)) {
+        viewingMonth = 'ਅਕਤੂਬਰ 2026';
+      }
       select.value = viewingMonth;
     }
 
@@ -272,6 +251,80 @@
       document.getElementById('cancelEditBtn').classList.add('hidden');
     };
 
+    // ਵਿਅਕਤੀਗਤ ਲੈੱਜਰ / ਸਟੇਟਮੈਂਟ (MODAL)
+    window.openPersonHistory = function(personName) {
+      if (!personName || personName.includes('Opening Balance')) return;
+
+      let historyRecords = [];
+      let totalGiven = 0;    // ਸਹਾਇਤਾ (Debit)
+      let totalReceived = 0; // ਆਮਦਨ (Credit)
+      let matchedPhone = '';
+
+      Object.keys(allMonthsData).forEach(mName => {
+        const monthList = allMonthsData[mName] || [];
+        monthList.forEach(item => {
+          if (item.name && item.name.trim().toLowerCase() === personName.trim().toLowerCase()) {
+            historyRecords.push({
+              month: mName,
+              ...item
+            });
+            if (item.phone && !matchedPhone) matchedPhone = item.phone;
+            if (item.type === 'credit') totalReceived += item.amount;
+            else totalGiven += item.amount;
+          }
+        });
+      });
+
+      historyRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      document.getElementById('modalPersonName').innerText = personName;
+      document.getElementById('modalPersonPhone').innerText = matchedPhone ? `ਮੋਬਾਈਲ: ${matchedPhone}` : '';
+      document.getElementById('modalTotalReceived').innerText = `₹${totalReceived.toLocaleString('en-IN')}`;
+      document.getElementById('modalTotalGiven').innerText = `₹${totalGiven.toLocaleString('en-IN')}`;
+
+      const netDifference = totalReceived - totalGiven;
+      const netEl = document.getElementById('modalNetBalance');
+      if (netDifference >= 0) {
+        netEl.innerText = `+ ₹${netDifference.toLocaleString('en-IN')} (ਜਮ੍ਹਾਂ)`;
+        netEl.className = 'text-xl font-bold text-emerald-600';
+      } else {
+        netEl.innerText = `- ₹${Math.abs(netDifference).toLocaleString('en-IN')} (ਸਹਾਇਤਾ / ਨਿਕਾਸੀ)`;
+        netEl.className = 'text-xl font-bold text-rose-600';
+      }
+
+      const tableBody = document.getElementById('modalHistoryTableBody');
+      tableBody.innerHTML = '';
+
+      if (historyRecords.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400 text-xs">ਕੋਈ ਰਿਕਾਰਡ ਨਹੀਂ ਮਿਲਿਆ</td></tr>`;
+      } else {
+        historyRecords.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.className = "border-b border-slate-100 hover:bg-slate-50";
+          const isCredit = row.type === 'credit';
+          tr.innerHTML = `
+            <td class="p-3 text-xs text-slate-600 whitespace-nowrap">${row.date}</td>
+            <td class="p-3 text-xs font-medium text-indigo-700 whitespace-nowrap">${row.month}</td>
+            <td class="p-3 text-xs">
+              <span class="px-2 py-0.5 rounded-full font-medium ${isCredit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                ${isCredit ? 'ਆਮਦਨ (ਜਮ੍ਹਾਂ)' : 'ਸਹਾਇਤਾ (ਦਿੱਤੀ)'}
+              </span>
+            </td>
+            <td class="p-3 text-right font-bold text-sm ${isCredit ? 'text-emerald-600' : 'text-rose-600'}">
+              ${isCredit ? '+' : '-'} ₹${row.amount.toLocaleString('en-IN')}
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('personHistoryModal').classList.remove('hidden');
+    };
+
+    window.closePersonHistoryModal = function() {
+      document.getElementById('personHistoryModal').classList.add('hidden');
+    };
+
     function renderApp() {
       const records = allMonthsData[viewingMonth] || [];
 
@@ -308,10 +361,14 @@
       } else {
         memberKeys.forEach(name => {
           const div = document.createElement('div');
-          div.className = 'py-2 flex justify-between items-center text-sm';
+          div.className = 'py-2 px-1 flex justify-between items-center text-sm hover:bg-slate-50 rounded cursor-pointer group transition';
+          div.title = 'ਪੂਰੀ ਹਿਸਟਰੀ ਦੇਖਣ ਲਈ ਕਲਿੱਕ ਕਰੋ';
+          div.onclick = () => openPersonHistory(name);
           div.innerHTML = `
-            <span class="font-medium text-slate-700">${name}</span>
-            <span class="font-bold text-emerald-600">₹${memberCredits[name].toLocaleString('en-IN')}</span>
+            <span class="font-medium text-slate-700 group-hover:text-indigo-600 flex items-center gap-1.5">
+              <i class="fa-solid fa-user-circle text-slate-400 group-hover:text-indigo-500"></i> ${name}
+            </span>
+            <span class="font-bold text-emerald-600">₹${memberCredits[name].toLocaleString('en-IN')} <i class="fa-solid fa-chevron-right text-xs text-slate-300 ml-1"></i></span>
           `;
           memberList.appendChild(div);
         });
@@ -337,7 +394,10 @@
         tr.innerHTML = `
           <td class="p-3 text-slate-500 text-xs whitespace-nowrap">${t.date}</td>
           <td class="p-3">
-            <div class="font-semibold text-slate-800">${t.name}</div>
+            <button onclick="openPersonHistory('${t.name.replace(/'/g, "\\'")}')" class="text-left font-semibold text-slate-800 hover:text-indigo-600 hover:underline flex items-center gap-1">
+              ${t.name}
+              ${!t.name.includes('Opening Balance') ? '<i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400"></i>' : ''}
+            </button>
             ${t.phone ? `<div class="text-xs text-slate-400">${t.phone}</div>` : ''}
           </td>
           <td class="p-3">${typeBadge}</td>
@@ -395,7 +455,7 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button onclick="startNewMonth()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-arrows-rotate"></i> ਨਵਾਂ ਮਹੀਨਾ ਸ਼ੁਰੂ ਕਰੋ
+          <i class="fa-solid fa-arrows-rotate"></i> ਨਵਾਂ ਸਾਲ / ਮਹੀਨਾ ਜੋੜੋ
         </button>
         <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-3 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
           <i class="fa-solid fa-file-excel"></i> Excel ਡਾਊਨਲੋਡ
@@ -406,14 +466,18 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 space-y-6">
 
+    <!-- Month Selector Bar -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-sm font-bold text-slate-700">ਮਹੀਨਾ ਚੁਣੋ:</span>
         <select id="activeMonthSelect" onchange="switchMonth(this.value)" class="border border-indigo-300 bg-indigo-50 text-indigo-900 font-semibold rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500">
         </select>
-        <button onclick="deleteCurrentMonth()" title="ਇਸ ਪੂਰੇ ਮਹੀਨੇ ਨੂੰ ਹਟਾਓ" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition">
-          <i class="fa-solid fa-trash-can"></i> ਇਹ ਮਹੀਨਾ ਡਿਲੀਟ ਕਰੋ
+        <button onclick="deleteCurrentMonth()" title="ਇਸ ਮਹੀਨੇ ਦੀਆਂ ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ ਖ਼ਾਲੀ ਕਰੋ" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-eraser"></i> ਇਹ ਮਹੀਨਾ ਖ਼ਾਲੀ ਕਰੋ
         </button>
+      </div>
+      <div class="text-xs text-slate-400 italic">
+        * ਡ੍ਰੌਪਡਾਊਨ ਵਿੱਚ ਬਿੰਦੀ (•) ਵਾਲੇ ਮਹੀਨਿਆਂ ਵਿੱਚ ਡਾਟਾ ਮੌਜੂਦ ਹੈ
       </div>
     </div>
 
@@ -539,6 +603,62 @@
     </div>
 
   </main>
+
+  <!-- Individual Person History Modal -->
+  <div id="personHistoryModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <div class="bg-indigo-700 text-white p-5 flex justify-between items-start">
+        <div>
+          <span class="text-xs text-indigo-200 font-semibold tracking-wide uppercase">ਵਿਅਕਤੀਗਤ ਖਾਤਾ / ਪੂਰੀ ਹਿਸਟਰੀ</span>
+          <h3 class="text-xl font-bold flex items-center gap-2 mt-0.5" id="modalPersonName">ਨਾਮ</h3>
+          <p class="text-xs text-indigo-200 mt-1" id="modalPersonPhone"></p>
+        </div>
+        <button onclick="closePersonHistoryModal()" class="text-white/80 hover:text-white text-2xl p-1 leading-none">
+          &times;
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 p-4 bg-slate-50 border-b border-slate-200 text-center">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-semibold text-slate-400">ਕੁੱਲ ਜਮ੍ਹਾਂ ਕਰਵਾਈ (Credit)</div>
+          <div class="text-base md:text-lg font-bold text-emerald-600" id="modalTotalReceived">₹0</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-semibold text-slate-400">ਕੁੱਲ ਸਹਾਇਤਾ ਲਈ (Debit)</div>
+          <div class="text-base md:text-lg font-bold text-rose-600" id="modalTotalGiven">₹0</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-semibold text-slate-400">ਕੁੱਲ ਬਕਾਇਆ (Net)</div>
+          <div class="text-base md:text-lg font-bold text-indigo-700" id="modalNetBalance">₹0</div>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto p-4 flex-1">
+        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ਸਾਰੇ ਮਹੀਨਿਆਂ ਦੀਆਂ ਐਂਟਰੀਆਂ</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold">
+                <th class="p-3 rounded-l-lg">ਮਿਤੀ</th>
+                <th class="p-3">ਮਹੀਨਾ</th>
+                <th class="p-3">ਕਿਸਮ</th>
+                <th class="p-3 text-right rounded-r-lg">ਰਕਮ (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="modalHistoryTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closePersonHistoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs md:text-sm px-5 py-2.5 rounded-lg shadow transition">
+          ਬੰਦ ਕਰੋ (Close)
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <script>
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
